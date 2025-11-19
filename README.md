@@ -30,7 +30,9 @@
 
 ## 시스템 아키텍처 (System Architecture – 2025년 11월 최종 버전)
 
-![System Architecture](./assets/architecture_diagram.png)
+<img width="1197" height="871" alt="image" src="https://github.com/user-attachments/assets/933edb3b-ed2e-4450-8403-0784d2624f19" />
+
+
 QGroundControl (UDP 14640) ──→ Middleware (udp_mw_ns3.py) ──→ PX4 SITL (UDP 14540 Uplink)
 PX4 SITL (UDP 14550 Downlink) ──→ Middleware ──→ QGroundControl (Dynamic Port)
 │
