@@ -1,6 +1,7 @@
 # UAV Network Simulator for Adaptive RL-based IDS  
 **Realistic PX4-SITL MAVLink Traffic Generator with ns-3-controlled Realistic Link, RAW Packet Capture, and Synchronous Multi-Modal Data Collection**
-[UAV 네트워크 시뮬레이터 아키텍쳐.pdf](https://github.com/user-attachments/files/23638553/UAV.pdf)
+<img width="1339" height="959" alt="image" src="https://github.com/user-attachments/assets/ab16c3a2-70ea-4a25-a73a-c004ba2bc3b2" />
+
 
 ## Project Overview
 
