@@ -1,123 +1,82 @@
-# UAV Network Simulator for Adaptive RL-based IDS  
-**Realistic PX4-SITL MAVLink Traffic Generator with ns-3-controlled Realistic Link, RAW Packet Capture, and Synchronous Multi-Modal Data Collection**
+# Adaptive AI-based IDS Simulation Framework for Heterogeneous UAV Networks
 
-<img width="1339" height="959" alt="image" src="https://github.com/user-attachments/assets/ab16c3a2-70ea-4a25-a73a-c004ba2bc3b2" />
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![ROS](https://img.shields.io/badge/ROS-Noetic-blue)](http://wiki.ros.org/noetic)
+[![PX4](https://img.shields.io/badge/PX4-Autopilot-black)](https://px4.io/)
+[![ns-3](https://img.shields.io/badge/ns--3-3.35-green)](https://www.nsnam.org/)
+
+## 📖 프로젝트 개요 (Project Overview)
+
+[cite_start]본 프로젝트는 **이기종 UAV 네트워크 환경**에서 동작하는 **적응형 AI 기반 침입 탐지 시스템(IDS)**을 연구 및 검증하기 위한 고충실도 시뮬레이션 프레임워크입니다[cite: 1].
+
+[cite_start]기존 IDS 연구는 정적인 토폴로지와 고정된 데이터셋에 의존하여, 드론과 같이 토폴로지가 급변하는 동적 환경에서의 보안 위협을 효과적으로 방어하지 못했습니다[cite: 1]. [cite_start]본 연구는 **PX4 SITL**, **ns-3**, **ROS**, 그리고 **강화학습(AMAGO)**을 통합하여, 물리적 비행 상태가 네트워크 품질에 실시간으로 영향을 미치는 현실적인 환경을 구현했습니다[cite: 1, 2].
+
+### 🎯 핵심 목표 (Key Objectives)
+* [cite_start]**고충실도 시뮬레이션:** 실제 비행 제어(PX4)와 네트워크 시뮬레이터(ns-3) 연동[cite: 1].
+* [cite_start]**동적 네트워크 환경:** 드론의 고도 및 기동에 따른 실시간 통신 품질(Delay, Loss, BW) 변화 구현[cite: 3].
+* [cite_start]**이기종 데이터 수집:** 네트워크 패킷, 드론 텔레메트리, RAW 패킷의 동기화된 데이터 파이프라인 구축[cite: 1].
+* [cite_start]**적대적 공격 재현:** DoS 및 Heartbeat Drop 등 실제 프로토콜 기반 공격 시나리오 시뮬레이션[cite: 1].
+
+---
+
+## 🏗️ 시스템 아키텍처 (System Architecture)
+
+[cite_start]이 시뮬레이터는 **비행 제어**, **지상 관제**, **네트워크 중계**, **데이터 수집**의 4계층으로 구성됩니다.
 
 
-## Project Overview
 
-This repository implements the **UAV-domain network simulator & dataset generator** for the research paper  
-**"Adaptive AI-based IDS via Reinforcement Learning"**  
-(Byeongchang Kim et al., GIST · Korea University · Kyung Hee University).
+### 🔌 포트 매핑 및 데이터 흐름 (Port Mapping)
+[cite_start]모든 트래픽은 미들웨어(`udp_mw_ns3.py`)를 경유하며, 이 과정에서 ns-3 모델에 기반한 네트워크 지연 및 손실이 적용됩니다.
 
-The overall project aims to train **a single reinforcement learning agent** (model-based RL with AMAGO-style architecture + Graph Neural Networks + contrastive reward predictor + generative augmentation) that can detect intrusions across **heterogeneous network domains (UAV/IoT, vehicular, corporate, home) without being limited to fixed topologies or pre-defined attack types.
+| Source Component | Source Port | Dest Component | Dest Port | Direction | Description |
+|------------------|-------------|----------------|-----------|-----------|-------------|
+| **QGroundControl** | Dynamic | **Middleware** | `14640` | Uplink | GCS → Drone 제어 명령 |
+| **Middleware** | Dynamic | **PX4 SITL** | `14540` | Uplink | 지연/손실 적용 후 전달 |
+| **PX4 SITL** | `14550` | **Middleware** | `14550` | Downlink | Drone → GCS 상태 정보 |
+| **Middleware** | `14550` | **QGroundControl** | Dynamic | Downlink | 지연/손실 적용 후 전달 |
+| **PX4 SITL** | Dynamic | **MAVROS** | `14556` | Offboard | ROS 연동 채널 |
 
-Conventional IDS systems suffer from critical limitations:
+---
 
-- Trained only on static datasets and fixed network topologies  
-- Fail to generalize to unseen attacks or topology changes  
-- Require massive labeled data for every new environment  
-- Cannot handle real-world network dynamics (mobility, link quality variation, etc.)
+## ⚙️ 설치 및 요구사항 (Installation & Prerequisites)
 
-→ We propose an adaptive, model-based RL framework that learns from experience and generalizes across domains.
+### 환경 요구사항 (Requirements)
+* [cite_start]**OS:** Ubuntu 20.04 LTS [cite: 7]
+* **Middleware:** Python 3.8+ (FastAPI, uvicorn, pymavlink)
+* **Simulation:** PX4-Autopilot, Gazebo Classic
+* [cite_start]**Network:** ns-3 (version 3.35 권장) [cite: 7]
+* **Robotics:** ROS Noetic
 
-My role in the project is the **UAV/IoT domain simulator**, which generates perfectly synchronized, high-fidelity, multi-modal data:
+### 설치 가이드 (Installation Steps)
 
-- Raw MAVLink/UDP packets (.pcapng)  
-- Network-layer metrics (delay, loss, rate, up/down_bytes) dynamically controlled by ns-3 based on drone altitude  
-- Drone telemetry + MAVLink statistics (altitude, velocity, GPS fix, EPH/EPV, attitude, heartbeat Hz, etc.)  
-- All modalities tagged with identical `RUN_ID` → perfect time alignment for RL training
-
-## System Architecture (Actual Implemented Diagram)
-
-![System Architecture](https://raw.githubusercontent.com/your-username/your-repo-name/main/assets/architecture.png)
-PX4 SITL (Gazebo) ←UDP 14550 (Downlink)→ Middleware (udp_mw_ns3.py) ←UDP dynamic(~1550)→ QGroundControl
-PX4 SITL ←UDP 14540 (Uplink)← Middleware ←UDP 14640← QGroundControl
-↓
-Apply ns-3 delay/loss/rate
-POST /ingest (1 Hz) → Collector
-MAVROS → Positions.txt (1 Hz) → ns-3 (mw-link-metrics) → calculates delay/loss/rate
-MAVROS → POST /ingest_extra → Collector
-Collector (FastAPI @ port 8080): GET /obs/latest, /obs/seq for RL agent
-text## Development Timeline (Real Progress Logs)
-
-| Date       | Milestone                                      | Key Outcome |
-|------------|------------------------------------------------|-------------|
-| 2024-10-07 | PX4 SITL ↔ QGC 기본 직통 연결                  | Stable baseline |
-| 2024-10-08 | Middleware (udp_mw_ns3.py) 삽입                | All traffic routed through middleware |
-| 2024-10-09 | ns-3 (mw-link-metrics) 연동                     | Real-time delay/loss/rate applied by altitude in real time (delay = 10 + h ms 등) |
-| 2024-10-17 | FastAPI Collector 구축 (HTTP Push/Pull)          | Synchronous storage of network + telemetry |
-| 2024-10-22 | RAW 패킷 수집 기능 완성 (tcpdump + scripts)     | pcapng + JSON perfect sync via RUN_ID |
-| 2024-11-02 | DoS/Flooding + Heartbeat Drop 공격 실험         | Successful anomaly capture |
-| 2024-11-10 | GUIDE-main Dataset 분석 및 modality 분리스트 작성 | MAVLink vs Sensor detectable attack types 정리 |
-
-Simulator is now 100 % complete and production-grade.
-
-## Key Features (All Implemented & Tested)
-
-1. **Realistic RF Link Simulation**  
-   ns-3 continuously reads drone altitude → calculates delay/loss/bandwidth → middleware applies to every MAVLink packets in real time.
-
-2. **Perfectly Synchronous Multi-Modal Collection**  
-   - RAW packets: tcpdump on loopback → .pcapng  
-   - Network metrics: middleware → POST /ingest (1 Hz)  
-   - Telemetry + heartbeat Hz: MAVROS → POST /ingest_extra (1 Hz)  
-   → Identical `run_id` across all files → zero alignment effort.
-
-3. **One-Command Experiment Workflow**
+1. **Repository Clone**
    ```bash
-   ~/uav_tools/start_capture.sh dos_attack_001    # starts tcpdump + sets RUN_ID
-   # fly or inject attack
-   ~/uav_tools/stop_capture.sh                     # auto-detects latest
-   ~/uav_tools/pcap_to_csv.sh dos_attack_001.all.pcapng
+   git clone [https://github.com/your-repo/uav-ids-simulation.git](https://github.com/your-repo/uav-ids-simulation.git)
+   cd uav-ids-simulation
+Python DependenciesBashpip install -r requirements.txt
+# 주요 라이브러리: fastapi, uvicorn, requests, pymavlink
+PX4 & ROS SetupPX4 Autopilot 빌드 및 ROS Noetic 설치가 필요합니다. (공식 문서 참조)🚀 실행 방법 (Usage)전체 시뮬레이션은 데이터 수집 서버, 미들웨어, 시뮬레이터 순으로 실행해야 합니다.1. 수집 서버 실행 (Collector Server)네트워크 지표와 텔레메트리를 수집하는 중앙 서버를 가동합니다1.Bashpython collector.py
+# Server runs on http://localhost:8000
+2. 네트워크 미들웨어 및 물리 브리지 실행ns-3 기반의 링크 품질 계산 및 패킷 중계를 시작합니다2.Bash# 물리-네트워크 연동 브리지 (고도 정보 -> ns-3 입력)
+python alt2positions.py
 
-Detectable Attacks by Modality (GUIDE-main Analysis)ModalityDetectable AttacksMAVLink layerDoS/Flooding, Heartbeat Drop, Message Drop/Injection, Link SpoofingSensor/TelemetryGPS Spoofing, GPS Jamming, Sensor noise attacks
-
-Current Status – November 19, 2025
-
-Simulator: fully stable
-Collected datasets: Normal flight + DoS + Heartbeat Drop (multiple altitudes)
-Total synchronized records in collector: >250,000 rows
-RAW pcap files: >15 GB across 50+ runs
-Ready for GPS Spoofing/Jamming experiments (only sensor injection or extra spoofing middleware needed)
-Next step: export to Parquet + integrate with RL training pipeline
-
-Quick Start (실제 빌드 과정 정리본 그대로)
-Bash# 0) Clean
-pkill -f 'px4|qgroundcontrol|mavros|udp_mw_ns3|collector|ros_extra_pusher|uvicorn' 2>/dev/null || true
-sudo lsof -nP -iUDP:14540 -iUDP:14550 -iUDP:14556 -iUDP:14558 -iUDP:14640 || true
-
-# 1) PX4 SITL
+# 네트워크 미들웨어 (패킷 중계 및 셰이핑)
+python udp_mw_ns3.py
+3. ROS 및 MAVROS 실행드론의 상태 정보를 수집하여 서버로 전송합니다3.Bashroslaunch mavros px4.launch fcu_url:="udp://:14556@127.0.0.1:14550"
+python ros_extra_pusher.py
+4. PX4 SITL & QGroundControl 실행Bash# PX4 SITL (Gazebo)
 cd ~/PX4-Autopilot
 make px4_sitl gazebo
 
-# 2) MAVROS extra downlink
-roslaunch mavros px4.launch fcu_url:=udp://:14556@127.0.0.1:14540
-
-# PX4 console에서
-mavlink start -u 14558 -r 40000000 -o 14556 -t 127.0.0.1
-
-# 3) ns-3 position feeder + collector + middleware
-python3 ~/mw_ns3/alti2positions.py &
-uvicorn collector:app --port 8080 &
-python3 udp_mw_ns3.py &
-
-# 4) QGroundControl → UDP 14640 연결
-
-# 5) 실험 시작 시
-~/uav_tools/start_capture.sh my_run_001
-Repository Structure
-text.
-├── udp_mw_ns3.py          # core middleware
-├── collector.py           # FastAPI collector
-├── mw-link-metrics        # ns-3 binary
-├── alti2positions.py      # MAVROS → positions.txt
-├── ros_extra_pusher.py
-├── uav_tools/             # start/stop_capture.sh, pcap_to_csv.sh
-├── assets/
-│   └── architecture.png   # 위에 넣은 다이어그램
-└── pcaps/ & pcap_csv/    # generated data
-Acknowledgments
-Part of the paper "Adaptive AI-based IDS via Reinforcement Learning"
-Authors: Byeongchang Kim (GIST), Jae-min Jung (Kyung Hee Univ.), Yoo-hee Park, Ye-ji Lee, Sun-young Hwang, Shin-young Ryu (Korea Univ.)
-License: MIT
+# QGroundControl (Connect to UDP port 14640, NOT 14550)
+./QGroundControl.AppImage
+주의: QGC에서 Comm Links 설정을 통해 14550 포트가 아닌 14640 포트로 접속해야 미들웨어가 정상 동작합니다4.⚔️ 공격 시뮬레이션 (Attack Simulation)학습 데이터의 다양성을 위해 attackctl.py를 사용하여 정상 트래픽 흐름에 제어된 공격을 주입할 수 있습니다5.1. 서비스 거부 공격 (DoS)대역폭 고갈 및 자원 소진을 유도합니다6.Bash# 20초간 800바이트 패킷 지속 주입
+python attackctl.py dos --duration 20 --size 800 --rate 30
+관측 지표: up_bytes 급증, 정상 명령 delay 증가 (Starvation)7.2. 하트비트 드롭 공격 (Heartbeat Drop)연결 상태를 교란하는 프로토콜 공격입니다8.Bash# 15초간 HEARTBEAT 메시지 60% 확률로 누락
+python attackctl.py hb --duration 15 --probability 0.6
+관측 지표: hb_hz (하트비트 주파수) 감소, heartbeat_gap_ms 분산 증가9.📊 데이터 파이프라인 및 API (Data Pipeline)수집된 데이터는 강화학습(AMAGO) 에이전트의 학습을 위해 정규화된 형태로 제공됩니다10101010.데이터 수집 구조 (Push/Pull)Push (/ingest): 미들웨어 및 ROS 노드가 1Hz 주기로 데이터를 서버로 전송1111.Pull (/obs/seq): 강화학습 에이전트가 과거 $k$개 시점의 시퀀스 데이터를 요청12121212.주요 수집 필드 (State Vector)CategoryFieldsDescriptionNetworkdelay_ms, loss_pct, up_bytes고도 상관관계 및 DoS 탐지용Dronealtitude_m, groundspeed_mps물리적 기동 상태 확인Protocolheartbeat_gap_ms, hb_hz연결 신뢰성 및 프로토콜 공격 탐지GNSSsatellites_used, fix_typeGPS 스푸핑/재밍 징후📝 Citation코드 스니펫@techreport{uav-ids-2024,
+  title={Adaptive AI-based IDS for Heterogeneous UAV Networks},
+  author={Your Name and Collaborators},
+  year={2024},
+  institution={Your Institution}
+}
