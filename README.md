@@ -2,7 +2,7 @@
 **UAV Domain Simulator & Dataset Generator**  
 **이기종 네트워크 환경에서 동작하는 단일 RL 에이전트를 위한 고충실도 UAV 네트워크 시뮬레이터**
 
-![UAV Network Simulator - System Architecture](./assets/architecture_diagram.png)  
+[UAV 네트워크 시뮬레이터 아키텍쳐  복사본.pptx](https://github.com/user-attachments/files/23757129/UAV.pptx)
 *(위 이미지를 리포지토리 assets 폴더에 architecture_diagram.png로 업로드하세요. 제공된 다이어그램을 기반으로 한 최종 버전입니다.)*
 
 ## 프로젝트 개요 (Project Overview)
